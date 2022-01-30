@@ -19,6 +19,7 @@ function TxButton({
   const { api, currentAccount } = useSubstrateState()
   const [unsub, setUnsub] = useState(null)
   const [sudoKey, setSudoKey] = useState(null)
+  const [loading, setLoading] = useState(null)
 
   const { palletRpc, callable, inputParams, paramFields } = attrs
 
@@ -97,8 +98,13 @@ function TxButton({
       ? setStatus(`😉 Finalized. Block hash: ${status.asFinalized.toString()}`)
       : setStatus(`Current transaction status: ${status.type}`)
 
+    setLoading(!status.isFinalized)
   }
+
+  const txErrHandler = err => {
     setStatus(`😞 Transaction Failed: ${err.toString()}`)
+    setLoading(false)
+  }
 
   const sudoTx = async () => {
     const fromAcct = await getFromAcct()
@@ -191,6 +197,7 @@ function TxButton({
       setUnsub(null)
     }
 
+    setLoading(true)
     setStatus('Sending...')
     ;(isSudo() && sudoTx()) ||
       (isUncheckedSudo() && uncheckedSudoTx()) ||
@@ -299,7 +306,8 @@ function TxButton({
         !allParamsFilled() ||
         // These txs required currentAccount to be set
         ((isSudo() || isUncheckedSudo() || isSigned()) && !currentAccount) ||
-        ((isSudo() || isUncheckedSudo()) && !isSudoer(currentAccount))
+        ((isSudo() || isUncheckedSudo()) && !isSudoer(currentAccount)) ||
+        loading
       }
     >
       {label}
