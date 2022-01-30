@@ -64,7 +64,11 @@ function Main() {
       </Sticky>
       <Container>
         <Grid stackable columns="equal">
-          <Grid.Row stretched>
+          <Grid.Row>
+            <TemplateModule />
+          </Grid.Row>
+
+          {/* <Grid.Row stretched>
             <NodeInfo />
             <Metadata />
             <BlockNumber />
@@ -80,10 +84,7 @@ function Main() {
           <Grid.Row>
             <Interactor />
             <Events />
-          </Grid.Row>
-          <Grid.Row>
-            <TemplateModule />
-          </Grid.Row>
+          </Grid.Row> */}
         </Grid>
       </Container>
       <DeveloperConsole />
