@@ -58,12 +58,46 @@ function TxButton({
     return [address, { signer: injector.signer }]
   }
 
-  const txResHandler = ({ status }) =>
+  // ref: https://polkadot.js.org/docs/api/cookbook/tx#how-do-i-get-the-decoded-enum-for-an-extrinsicfailed-event
+  const captureExtrincicFailed = ({status, events}) => {
+    let errorMsg = null
+    if (status.isInBlock || status.isFinalized) {
+      events
+        // find/filter for failed events
+        .filter(({ event }) =>
+          api.events.system.ExtrinsicFailed.is(event)
+        )
+        // we know that data for system.ExtrinsicFailed is
+        // (DispatchError, DispatchInfo)
+        .forEach(({ event: { data: [error] } }) => {
+          if (error.isModule) {
+            // for module errors, we have the section indexed, lookup
+            const decoded = api.registry.findMetaError(error.asModule);
+            const { docs } = decoded;
+
+            errorMsg = `${docs.join(' ')}`
+          } else {
+            // Other, CannotLookup, BadOrigin, no extra info
+            errorMsg = error.toString();
+          }
+        });
+    }
+    return errorMsg
+  }
+
+  const txResHandler = ({ status, events }) => {
+    const errorMsg = captureExtrincicFailed({ status, events })
+
+    if (errorMsg) {
+      txErrHandler(errorMsg)
+      return
+    }
+
     status.isFinalized
       ? setStatus(`😉 Finalized. Block hash: ${status.asFinalized.toString()}`)
       : setStatus(`Current transaction status: ${status.type}`)
 
-  const txErrHandler = err =>
+  }
     setStatus(`😞 Transaction Failed: ${err.toString()}`)
 
   const sudoTx = async () => {
