@@ -31,6 +31,7 @@ pub use frame_support::{
 		constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
 		IdentityFee, Weight,
 	},
+	PalletId,
 	StorageValue,
 };
 pub use pallet_balances::Call as BalancesCall;
@@ -274,9 +275,23 @@ impl pallet_sudo::Config for Runtime {
 	type Call = Call;
 }
 
+parameter_types! {
+    pub const MaxNameOwned: u32 = 9999;
+    pub const BlockReservationCost: u32 = 10;
+    pub const TemplatePalletId: PalletId = PalletId(*b"names123");
+	pub const NameMinLength: u16 = 4;
+    pub const NameMaxLength: u16 = 32;
+}
+
 /// Configure the pallet-template in pallets/template.
 impl pallet_template::Config for Runtime {
 	type Event = Event;
+	type Currency = Balances;
+	type MaxNameOwned = MaxNameOwned;
+	type BlockReservationCost = BlockReservationCost;
+	type PalletId = TemplatePalletId;
+	type MinLength = NameMinLength;
+	type MaxLength = NameMaxLength;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
