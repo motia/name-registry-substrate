@@ -1,5 +1,5 @@
 use crate as pallet_template;
-use frame_support::parameter_types;
+use frame_support::{parameter_types, PalletId, traits::GenesisBuild};
 use frame_system as system;
 use sp_core::H256;
 use sp_runtime::{
@@ -18,6 +18,7 @@ frame_support::construct_runtime!(
 		UncheckedExtrinsic = UncheckedExtrinsic,
 	{
 		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
+		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 		TemplateModule: pallet_template::{Pallet, Call, Storage, Event<T>},
 	}
 );
@@ -45,7 +46,7 @@ impl system::Config for Test {
 	type BlockHashCount = BlockHashCount;
 	type Version = ();
 	type PalletInfo = PalletInfo;
-	type AccountData = ();
+	type AccountData = pallet_balances::AccountData<u64>;
 	type OnNewAccount = ();
 	type OnKilledAccount = ();
 	type SystemWeightInfo = ();
@@ -53,11 +54,51 @@ impl system::Config for Test {
 	type OnSetCode = ();
 }
 
+parameter_types! {
+	pub const ExistentialDeposit: u64 = 1;
+}
+impl pallet_balances::Config for Test {
+	type MaxLocks = ();
+	type Balance = u64;
+	type Event = Event;
+	type DustRemoval = ();
+	type ExistentialDeposit = ExistentialDeposit;
+	type AccountStore = System;
+	type WeightInfo = ();
+	type MaxReserves = ();
+	type ReserveIdentifier = ();
+}
+
+parameter_types! {
+    pub const MaxNameOwned: u32 = 5;
+    pub const BlockReservationCost: u32 = 10;
+    pub const TemplatePalletId: PalletId = PalletId(*b"names999");
+    pub const NameMinLength: u16 = 4;
+    pub const NameMaxLength: u16 = 32;
+}
+
 impl pallet_template::Config for Test {
 	type Event = Event;
+	type Currency = Balances;
+	type MaxNameOwned = MaxNameOwned;
+	type BlockReservationCost = BlockReservationCost;
+	type PalletId = TemplatePalletId;
+	type MinLength = NameMinLength;
+	type MaxLength = NameMaxLength;
 }
 
 // Build genesis storage according to the mock runtime.
 pub fn new_test_ext() -> sp_io::TestExternalities {
-	system::GenesisConfig::default().build_storage::<Test>().unwrap().into()
+	let mut t = system::GenesisConfig::default().build_storage::<Test>().unwrap();
+
+	pallet_balances::GenesisConfig::<Test>{
+		balances: vec![(200, 500), (TemplateModule::account_id(), 1)],
+	}.assimilate_storage(&mut t).unwrap();
+
+	<crate::GenesisConfig<Test> as GenesisBuild<Test>>::assimilate_storage(&crate::GenesisConfig::default(), &mut t).unwrap();
+
+	let mut t: sp_io::TestExternalities = t.into();
+
+	t.execute_with(|| System::set_block_number(1) );
+	t
 }
